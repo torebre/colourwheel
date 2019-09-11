@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <map>
-#include <SFML/Graphics.hpp>
+#include <Graphics.hpp>
 
 class ColourWheel {
 

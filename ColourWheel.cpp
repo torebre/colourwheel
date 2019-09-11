@@ -1,8 +1,8 @@
 #include "ColourWheel.h"
 #include <cmath>
 #include <iostream>
-#include <SFML/Config.hpp>
-#include <SFML/Graphics.hpp>
+#include <Config.hpp>
+#include <Graphics.hpp>
 
 ColourWheel::~ColourWheel() {
     // TODO Check if it has been initialized

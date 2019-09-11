@@ -2,32 +2,17 @@ cmake_minimum_required(VERSION 3.14)
 project(ColourWheel)
 
 set(CMAKE_CXX_STANDARD 14)
+set(SFML_DIR "/usr/lib/x86_64-linux-gnu/cmake/SFML")
 
-set(CMAKE_MODULE_PATH "/usr/share/SFML/cmake/Modules/")
-#set(SFML_DIR "/usr/share/SFML/cmake/Modules/")
-#FindSFML.cmake
-
-#set(SFML_STATIC_LIBRARIES TRUE)
-
-message(ERROR "Test23")
-
-find_package(SFML COMPONENTS graphics REQUIRED)
+find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
 
 add_executable(colourwheel
         main.cpp
         ColourWheel.h
         ColourWheel.cpp)
 
-
-if (SFML_FOUND)
-    message("Found SFML")
-    include_directories(${SFML_INCLUDE_DIR})
-    target_link_libraries(colourwheel ${SFML_LIBRARIES} -lsfml-window -lsfml-system)
-else ()
-    message("Did not find SFML")
-endif ()
-
-#target_link_libraries(colourwheel sfml-graphics)
+include_directories("/usr/include/SFML/")
+target_link_libraries(colourwheel sfml-graphics sfml-window sfml-system)
 
 # Download and unpack googletest at configure time
 configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)

@@ -7,7 +7,7 @@ TEST(ColourWheelTest, OutputGenerated) {
 
     auto segmentPixels = colourWheel.setup(10, 10);
 
-    auto pixelArray = colourWheel.createPixelArray(10);
+    auto pixelArray = colourWheel.createPixelArray(10, 10);
 
 //    for(int row = 0; row < 10; ++row) {
 //        for(int column = 0; column < 10; ++column) {
