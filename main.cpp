@@ -1,9 +1,22 @@
 #include "ColourWheel.h"
 #include <SFML/Graphics.hpp>
+#include <iostream>
 
 
-void run(unsigned int height, unsigned int width, sf::Image image) {
+#define NUMBER_OF_ROWS 100
+#define NUMBER_OF_COLUMNS 100
+
+
+
+void createImage(ColourWheel *colourWheel, sf::Image *image) {
+    auto pixelArray = colourWheel->getPixelArray();
+    image->create(100, 100, pixelArray);
+}
+
+void run(unsigned int height, unsigned int width, ColourWheel *colourWheel) {
     sf::RenderWindow window(sf::VideoMode(width, height), "SFML works!");
+
+    int segment = 0;
 
     while (window.isOpen()) {
         sf::Event event;
@@ -15,6 +28,18 @@ void run(unsigned int height, unsigned int width, sf::Image image) {
         window.clear();
 
         sf::Texture texture;
+        sf::Image image;
+        createImage(colourWheel, &image);
+
+        colourWheel->highlightSegment(segment);
+
+        std::cout << "Segment: " << segment << "\n";
+
+        ++segment;
+        if(segment == 100) {
+            segment = 0;
+        }
+
         texture.loadFromImage(image);
         sf::Sprite sprite;
         sprite.setTexture(texture, true);
@@ -26,42 +51,12 @@ void run(unsigned int height, unsigned int width, sf::Image image) {
 }
 
 
+
 int main() {
     auto colourWheel = ColourWheel();
-    auto segmentPixels = colourWheel.setup(100, 100);
+    colourWheel.setup(NUMBER_OF_ROWS, NUMBER_OF_COLUMNS);
 
-    int max = colourWheel.findMax(segmentPixels);
-    auto pixelArray = colourWheel.createPixelArray(100, 100);
-
-    auto mapSize = segmentPixels.size();
-
-    sf::Image image;
-    image.create(100, 100, pixelArray);
-
-    run(100, 100, image);
-
-
-//    for(int row = 0; row < mapSize; ++row) {
-//        for(int column = 0; column < max; ++column) {
-//            hsv()
-//
-//        }
-//
-//
-//    }
-
-
-
-//    for(int row = 0; row < 10; ++row) {
-//        for(int column = 0; column < 10; ++column) {
-//            std::cout << "Pixel value: " << pixelArray[row][column].x << ", " << pixelArray[row][column].y;
-//        }
-//    }
-
-
-
-
-//    run();
+    run(100, 100, &colourWheel);
 
     return 0;
 }

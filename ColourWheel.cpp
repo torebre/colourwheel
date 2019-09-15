@@ -5,7 +5,6 @@
 #include <Graphics.hpp>
 
 
-
 ColourWheel::ColourWheel() {
     init();
 }
@@ -16,10 +15,14 @@ ColourWheel::~ColourWheel() {
 }
 
 void ColourWheel::init() {
-    colourLookupTable = createSegmentColours();
+    hsvColourLookupTable = createHsvSegmentColours();
+    colourLookupTable = createSegmentColours(hsvColourLookupTable);
 }
 
-ColourWheel::PixelMap &ColourWheel::setup(int numberOfRows, int numberOfColumns) {
+void ColourWheel::setup(int numberOfRowsInput, int numberOfColumnsInput) {
+    numberOfRows = numberOfRowsInput;
+    numberOfColumns = numberOfColumnsInput;
+
     int centerX = numberOfRows / 2;
     int centerY = numberOfColumns / 2;
     double angleSegment = 2 * M_PI / NUMBER_OF_SEGMENTS;
@@ -47,16 +50,21 @@ ColourWheel::PixelMap &ColourWheel::setup(int numberOfRows, int numberOfColumns)
             }
         }
     }
-    return segmentPixelsMap;
+
+    createPixelArray(numberOfRows, numberOfColumns);
 }
 
 
-sf::Uint8 *ColourWheel::createPixelArray(int height, int width) {
+sf::Uint8 *ColourWheel::getPixelArray() {
+    return currentPixelArray;
+}
+
+void ColourWheel::createPixelArray(int height, int width) {
     auto mapSize = segmentPixelsMap.size();
     auto segmentPixelColours = new sf::Uint8[height * width * 4];
 
-    for(int i = 0; i < height; ++i) {
-        for(int j = 0; j < width; ++j) {
+    for (int i = 0; i < height; ++i) {
+        for (int j = 0; j < width; ++j) {
             auto coordinate = 4 * i * width;
             segmentPixelColours[coordinate + j] = 0;
             segmentPixelColours[coordinate + j + 1] = 0;
@@ -76,63 +84,94 @@ sf::Uint8 *ColourWheel::createPixelArray(int height, int width) {
         }
     }
 
-    return segmentPixelColours;
+    currentPixelArray = segmentPixelColours;
 }
 
- sf::Color *ColourWheel::createSegmentColours() {
+sf::Color *ColourWheel::createSegmentColours(Hsv *hsvColour) {
     double hue = 0;
-
     auto lookupTable = new sf::Color[NUMBER_OF_SEGMENTS];
 
-    for(int i = 0; i < NUMBER_OF_SEGMENTS; ++i) {
+    for (int i = 0; i < NUMBER_OF_SEGMENTS; ++i) {
         hue += HUE_CHANGE;
-        lookupTable[i] = hsv(hue, 1.0, 1.0);
+        lookupTable[i] = hsv(hsvColour[i].h, hsvColour[i].s, hsvColour[i].v);
     }
 
     return lookupTable;
+}
+
+ColourWheel::Hsv *ColourWheel::createHsvSegmentColours() {
+    double hue = 0;
+    auto lookupTable = new ColourWheel::Hsv[NUMBER_OF_SEGMENTS];
+
+    for (int i = 0; i < NUMBER_OF_SEGMENTS; ++i) {
+        hue += HUE_CHANGE;
+        lookupTable[i] = Hsv{hue, 0.5, 1.0};
+    }
+
+    return lookupTable;
+}
+
+void ColourWheel::highlightSegment(int segmentToHighlight) {
+    if (currentHighlight != -1) {
+        auto originalColour = hsvColourLookupTable[segmentToHighlight];
+        auto colour = hsv(originalColour.h, originalColour.s, originalColour.v);
+
+        highlightSegmentInternal(currentHighlight, &colour);
+    }
+
+    currentHighlight = segmentToHighlight;
+
+    auto originalColour = hsvColourLookupTable[segmentToHighlight];
+    auto colourToUse = hsv(originalColour.h, 1.0, originalColour.v);
+
+    highlightSegmentInternal(segmentToHighlight, &colourToUse);
+
+}
+
+void ColourWheel::highlightSegmentInternal(int segmentToHighlight, sf::Color *colour) {
+    auto segment = segmentPixelsMap[segmentToHighlight];
+
+
+    for (auto const iterator : segment) {
+        currentPixelArray[4 * iterator.x * numberOfColumns + 4 * iterator.y] = colour->r;
+        currentPixelArray[4 * iterator.x * numberOfColumns + 4 * iterator.y + 1] = colour->g;
+        currentPixelArray[4 * iterator.x * numberOfColumns + 4 * iterator.y + 2] = colour->b;
+        currentPixelArray[4 * iterator.x * numberOfColumns + 4 * iterator.y + 3] = colour->a;
+    }
 }
 
 
 // hue: 0-360°; sat: 0.f-1.f; val: 0.f-1.f
 sf::Color ColourWheel::hsv(int hue, float sat, float val) {
     hue %= 360;
-    while(hue<0) hue += 360;
+    while (hue < 0) hue += 360;
 
-    if(sat<0.f) sat = 0.f;
-    if(sat>1.f) sat = 1.f;
+    if (sat < 0.f) sat = 0.f;
+    if (sat > 1.f) sat = 1.f;
 
-    if(val<0.f) val = 0.f;
-    if(val>1.f) val = 1.f;
+    if (val < 0.f) val = 0.f;
+    if (val > 1.f) val = 1.f;
 
-    int h = hue/60;
-    float f = float(hue)/60-h;
-    float p = val*(1.f-sat);
-    float q = val*(1.f-sat*f);
-    float t = val*(1.f-sat*(1-f));
+    int h = hue / 60;
+    float f = float(hue) / 60 - h;
+    float p = val * (1.f - sat);
+    float q = val * (1.f - sat * f);
+    float t = val * (1.f - sat * (1 - f));
 
-    switch(h)
-    {
+    switch (h) {
         default:
         case 0:
-        case 6: return sf::Color(val*255, t*255, p*255);
-        case 1: return sf::Color(q*255, val*255, p*255);
-        case 2: return sf::Color(p*255, val*255, t*255);
-        case 3: return sf::Color(p*255, q*255, val*255);
-        case 4: return sf::Color(t*255, p*255, val*255);
-        case 5: return sf::Color(val*255, p*255, q*255);
+        case 6:
+            return sf::Color(val * 255, t * 255, p * 255);
+        case 1:
+            return sf::Color(q * 255, val * 255, p * 255);
+        case 2:
+            return sf::Color(p * 255, val * 255, t * 255);
+        case 3:
+            return sf::Color(p * 255, q * 255, val * 255);
+        case 4:
+            return sf::Color(t * 255, p * 255, val * 255);
+        case 5:
+            return sf::Color(val * 255, p * 255, q * 255);
     }
-}
-
-
-
-int ColourWheel::findMax(std::map<int, std::vector<Pixel>> &mapToFindMaxFrom) {
-    unsigned long max = 0;
-
-    for (auto const iterator : mapToFindMaxFrom) {
-        if (max < iterator.second.size()) {
-            max = iterator.second.size();
-        }
-    }
-
-    return max;
 }
