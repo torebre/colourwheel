@@ -4,9 +4,19 @@
 #include <Config.hpp>
 #include <Graphics.hpp>
 
+
+
+ColourWheel::ColourWheel() {
+    init();
+}
+
 ColourWheel::~ColourWheel() {
     // TODO Check if it has been initialized
     delete segmentPixelList;
+}
+
+void ColourWheel::init() {
+    colourLookupTable = createSegmentColours();
 }
 
 ColourWheel::PixelMap &ColourWheel::setup(int numberOfRows, int numberOfColumns) {
@@ -35,12 +45,8 @@ ColourWheel::PixelMap &ColourWheel::setup(int numberOfRows, int numberOfColumns)
             } else {
                 pixelIterator->second.push_back(Pixel{row, column});
             }
-
-//            std::cout << angle;
         }
-
     }
-
     return segmentPixelsMap;
 }
 
@@ -51,21 +57,18 @@ sf::Uint8 *ColourWheel::createPixelArray(int height, int width) {
 
     for(int i = 0; i < height; ++i) {
         for(int j = 0; j < width; ++j) {
-            segmentPixelColours[4 * i * width + j] = 0;
-            segmentPixelColours[4 * i * width + j + 1] = 0;
-            segmentPixelColours[4 * i * width + j + 2] = 0;
-            segmentPixelColours[4 * i * width + j + 3] = 0;
+            auto coordinate = 4 * i * width;
+            segmentPixelColours[coordinate + j] = 0;
+            segmentPixelColours[coordinate + j + 1] = 0;
+            segmentPixelColours[coordinate + j + 2] = 0;
+            segmentPixelColours[coordinate + j + 3] = 0;
         }
     }
 
-    double hue = 0;
     for (unsigned long i = 0; i < mapSize; ++i) {
-
-        hue += HUE_CHANGE;
+        auto colour = colourLookupTable[i];
 
         for (auto const iterator : segmentPixelsMap[i]) {
-            auto colour = hsv(hue, 1.0, 1.0);
-
             segmentPixelColours[4 * iterator.x * width + 4 * iterator.y] = colour.r;
             segmentPixelColours[4 * iterator.x * width + 4 * iterator.y + 1] = colour.g;
             segmentPixelColours[4 * iterator.x * width + 4 * iterator.y + 2] = colour.b;
@@ -75,6 +78,51 @@ sf::Uint8 *ColourWheel::createPixelArray(int height, int width) {
 
     return segmentPixelColours;
 }
+
+ sf::Color *ColourWheel::createSegmentColours() {
+    double hue = 0;
+
+    auto lookupTable = new sf::Color[NUMBER_OF_SEGMENTS];
+
+    for(int i = 0; i < NUMBER_OF_SEGMENTS; ++i) {
+        hue += HUE_CHANGE;
+        lookupTable[i] = hsv(hue, 1.0, 1.0);
+    }
+
+    return lookupTable;
+}
+
+
+// hue: 0-360°; sat: 0.f-1.f; val: 0.f-1.f
+sf::Color ColourWheel::hsv(int hue, float sat, float val) {
+    hue %= 360;
+    while(hue<0) hue += 360;
+
+    if(sat<0.f) sat = 0.f;
+    if(sat>1.f) sat = 1.f;
+
+    if(val<0.f) val = 0.f;
+    if(val>1.f) val = 1.f;
+
+    int h = hue/60;
+    float f = float(hue)/60-h;
+    float p = val*(1.f-sat);
+    float q = val*(1.f-sat*f);
+    float t = val*(1.f-sat*(1-f));
+
+    switch(h)
+    {
+        default:
+        case 0:
+        case 6: return sf::Color(val*255, t*255, p*255);
+        case 1: return sf::Color(q*255, val*255, p*255);
+        case 2: return sf::Color(p*255, val*255, t*255);
+        case 3: return sf::Color(p*255, q*255, val*255);
+        case 4: return sf::Color(t*255, p*255, val*255);
+        case 5: return sf::Color(val*255, p*255, q*255);
+    }
+}
+
 
 
 int ColourWheel::findMax(std::map<int, std::vector<Pixel>> &mapToFindMaxFrom) {
